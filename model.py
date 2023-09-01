@@ -16,6 +16,7 @@ class Users(Base):
     user_last_name  = Column(String)
     user_name       = Column(String)
 
+
 class Product(Base):
     __tablename__ = "products"
 
