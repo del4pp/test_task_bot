@@ -26,4 +26,13 @@ class Product(Base):
     product_img = Column(String)
     product_article = Column(Integer)
 
+
+class Orders(Base):
+    __tablename__ = "orders"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    chat_id     = Column(String, index=True)
+    product_id  = Column(Integer)
+
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
