@@ -1,6 +1,6 @@
 import logging
 from aiogram import Bot, Dispatcher, types, executor
-from aiogram.contrib.middlewares.logging import LoggingMiddleware
+#from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 import menu
@@ -11,7 +11,7 @@ API_TOKEN = token
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
-dp.middleware.setup(LoggingMiddleware())
+#dp.middleware.setup(LoggingMiddleware())
 
 
 # Обробка команди "старт".
@@ -37,8 +37,6 @@ async def start(message: types.Message):
     await message.answer(welcome_message, reply_markup=menu.home_menu)
 
 
-
-
 #region CallbackMenu
 # Обробник натискання кнопки "Каталог товарів"
 @dp.callback_query_handler(lambda query: query.data == 'open_catalog')
@@ -50,15 +48,18 @@ async def open_catalog(query: types.CallbackQuery):
 
     #Створення кнопок меню
     product_keyboard.row(
-        types.InlineKeyboardButton(text='Додати в корзину', callback_data=f'add_basket_{products.id}')
+        types.InlineKeyboardButton(text='Купити', callback_data=f'buy_{products.id}')
     )
     product_keyboard.row(
         types.InlineKeyboardButton(text='<< Попередній', callback_data=f'prev_{products.id}'),
         types.InlineKeyboardButton(text='Наступний >>', callback_data=f'next_{products.id}')
     )
 
+    orders = db.query(Orders).filter_by(chat_id=query.from_user.id, product_id=products.id).first()
+
     chat_id = query.from_user.id
-    product_desc = f'*{products.product_name}* \nЦіна: {products.product_price}'
+    product_desc = f'*{products.product_name}* \nЦіна: {products.product_price}' + \
+                    ['\n\nТовар вже придбаний' if orders else ''][0]
     with open(products.product_img, 'rb') as product_image:
         await bot.send_photo(chat_id, photo=product_image, caption=product_desc, parse_mode='Markdown',
                              reply_markup=product_keyboard)
@@ -97,22 +98,36 @@ async def navigate_catalog(query: types.CallbackQuery):
 
     product_keyboard = types.InlineKeyboardMarkup(resize_keyboard=True, selective=True)
     product_keyboard.row(
-        types.InlineKeyboardButton(text='Додати в корзину', callback_data=f'add_basket_{current_product.id}')
+        types.InlineKeyboardButton(text='Купити', callback_data=f'buy_{current_product.id}')
     )
     product_keyboard.row(
         types.InlineKeyboardButton(text='<< Попередній', callback_data=f'prev_{current_product.id}'),
         types.InlineKeyboardButton(text='Наступний >>', callback_data=f'next_{current_product.id}')
     )
 
+    orders = db.query(Orders).filter_by(chat_id=query.from_user.id, product_id=current_product.id).first()
+
     chat_id = query.from_user.id
     # Формуємо новий текст і кнопки для повідомлення
-    product_desc = f'*{current_product.product_name}* \nЦіна: {current_product.product_price}'
+    product_desc = f'*{current_product.product_name}* \nЦіна: {current_product.product_price}' + \
+                    ['\n\nТовар вже придбаний' if orders else ''][0]
     with open(current_product.product_img, 'rb') as product_image:
         # Використовуємо метод edit_message_text для оновлення повідомлення
         await bot.edit_message_media(chat_id=chat_id, message_id=query.message.message_id,
                                      media=types.InputMediaPhoto(media=product_image), reply_markup=product_keyboard)
         await bot.edit_message_caption(chat_id=chat_id, message_id=query.message.message_id, caption=product_desc,
                                        parse_mode='Markdown', reply_markup=product_keyboard)
+
+@dp.callback_query_handler(lambda query: query.data.startswith('buy_'))
+async def buy_product(query: types.CallbackQuery):
+    print('---')
+    action, product = query.data.split('_')
+    db = SessionLocal()
+    print(action, product)
+    add_order = Orders(chat_id=query.from_user.id, product_id=product)
+    db.add(add_order)
+    db.commit()
+    await query.message.answer('Товар успішно замовлений')
 #endregion
 
 
