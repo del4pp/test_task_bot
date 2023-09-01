@@ -11,7 +11,11 @@ class Users(Base):
     __tablename__ = "users"
 
     id              = Column(Integer, primary_key=True, index=True)
-    cat_id          = Column(String, index=True)
+    chat_id         = Column(String, index=True)
     user_first_name = Column(String)
     user_last_name  = Column(String)
     user_name       = Column(String)
+
+
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
