@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, Float
 from sqlalchemy.orm import declarative_base, sessionmaker
 from config import sql_connect
 
@@ -16,6 +16,13 @@ class Users(Base):
     user_last_name  = Column(String)
     user_name       = Column(String)
 
+class Product(Base):
+    __tablename__ = "products"
 
+    id = Column(Integer, primary_key=True, index=True)
+    product_name = Column(String, index=True)
+    product_price = Column(Float)
+    product_img = Column(String)
+    product_article = Column(Integer)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
